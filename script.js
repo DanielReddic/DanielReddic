@@ -13,27 +13,23 @@ const ART=[
  {src:IM[5],ar:.996,title:"Title",meta:"Medium, year",desc:"Description of the work."},
  {src:IM[6],ar:.37,title:"Title",meta:"Medium, year",desc:"Description of the work."},
  {src:IM[7],ar:0.653,title:"Title",meta:"Medium, year",desc:"Description of the work."}];
-// LENSE binder: 3 spreads. type img|video|text, w:true = full width, src:"" = placeholder.
-const P=(cap,w)=>({type:'img',src:'',cap:cap||'Title — description',w});
+// LENS binder: 3 spreads, each with a left and right page. Photos sit freely on the page:
+// x = % from the left, y = % from the top, w = width as % of the page (height follows the photo).
+// For video use {type:'video',src:'assets/clip.mp4',x:..,y:..,w:..}; for text use {type:'text',text:'...',x:..,y:..,w:..}.
+// Photos: assets/lens/NN.jpg (compressed, shown in the book) and assets/lens/full/NN.jpg (large, opens when clicked).
+const P=(n,x,y,w)=>({src:`assets/lens/${n}.jpg`,full:`assets/lens/full/${n}.jpg`,x,y,w});
 const SPREADS=[
- {l:[P('Photo 01 — description',true),P('Photo 02'),P('Photo 03')],r:[P('Photo 04'),P('Photo 05'),{type:'text',text:'Statement / notes go here.'}]},
- {l:[P('Photo 06'),P('Photo 07'),P('Photo 08',true)],r:[{type:'video',src:'',cap:'Video 01 — description',w:true},P('Photo 09'),P('Photo 10')]},
- {l:[P('Photo 11',true),P('Photo 12'),P('Photo 13')],r:[P('Photo 14'),P('Photo 15'),P('Photo 16',true)]}];
+ {l:[P('01',6,3.8,46),P('02',58,15.0,36),P('03',16,58.5,32)],
+  r:[P('04',6,4.5,44),P('05',52,37.5,42)]},
+ {l:[P('06',52,3.0,42),P('07',6,16.5,38),P('08',44,60.0,34)],
+  r:[P('09',52,4.5,42),P('10',8,39.0,44)]},
+ {l:[P('11',8,4.5,36),P('12',50,9.0,44),P('13',14,60.0,34)],
+  r:[P('14',6,4.5,44),P('15',52,37.5,42)]}];
 // DIGITAL: type img|video, src:"" = placeholder. Each project has steps shown in the flow chart.
 const GFX=["assets/graphic-01.jpg","assets/graphic-02.jpg","assets/graphic-03.jpg","assets/graphic-04.jpg","assets/graphic-05.jpg","assets/graphic-06.jpg","assets/graphic-07.jpg","assets/graphic-08.jpg","assets/graphic-09.jpg","assets/graphic-10.jpg","assets/graphic-11.jpg","assets/graphic-12.jpg","assets/graphic-13.jpg","assets/graphic-14.jpg","assets/graphic-15.jpg"];
 const stp=n=>Array.from({length:n},(_,i)=>({type:'img',src:'',title:'Step '+(i+1),text:'Describe this stage of the process.'}));
 const prj=(n,k)=>Array.from({length:n},(_,i)=>({type:'img',src:'',title:'Project 0'+(i+1),steps:stp(k)}));
 const DIGITAL={graphic:{name:'Graphic design',gallery:true,items:GFX.map(s=>({src:s}))},interactive:{name:'Interactive',items:prj(3,5)},three:{name:'3D',items:prj(3,5)}};
-// SHOP: set your Zelle + email. Prices below are placeholders. sizes shows a size picker; one:true = single original.
-const SHOP={zelle:"YOUR-ZELLE-EMAIL-OR-PHONE",email:"YOUR-EMAIL",
- merch:[
-  {id:'m1',title:'Print 01',price:45,desc:'Giclée print on archival paper.',sizes:['8x10','11x14','18x24'],src:IM[3]},
-  {id:'m2',title:'Poster 02',price:30,desc:'Offset poster.',sizes:['18x24','24x36'],src:IM[1]},
-  {id:'m3',title:'T-shirt 03',price:40,desc:'Heavyweight cotton tee, screen printed.',sizes:['S','M','L','XL'],src:''},
-  {id:'m4',title:'Print 04',price:45,desc:'Giclée print on archival paper.',sizes:['8x10','11x14','18x24'],src:IM[4]},
-  {id:'m5',title:'T-shirt 05',price:40,desc:'Heavyweight cotton tee, screen printed.',sizes:['S','M','L','XL'],src:''},
-  {id:'m6',title:'Poster 06',price:30,desc:'Offset poster.',sizes:['18x24','24x36'],src:IM[5]}],
- works:IM.map((s,i)=>({id:'w'+(i+1),title:'Title '+(i+1),price:1200,one:true,desc:'Medium, year, dimensions.',src:s}))};
 /* =================================== */
 const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hh=()=>{const h=$('header').offsetHeight+8;document.documentElement.style.setProperty('--hh',h+'px');return h};
@@ -67,11 +63,15 @@ function loop(){requestAnimationFrame(loop);const f=lock?.25:.08;
 
 /* ---- binder (Lense) ---- */
 function media(it){
+ if(it.x!==undefined){const st=`left:${it.x}%;top:${it.y}%;width:${it.w}%`;
+  if(it.type==='text')return `<p class="fl" style="${st}">${it.text}</p>`;
+  if(it.type==='video')return `<figure class="fl" style="${st}"><video src="${it.src}" controls playsinline></video>${it.cap?`<figcaption>${it.cap}</figcaption>`:''}</figure>`;
+  return `<figure class="fl" style="${st}"><img src="${it.src}" data-full="${it.full||it.src}" alt="${it.cap||''}" decoding="async">${it.cap?`<figcaption>${it.cap}</figcaption>`:''}</figure>`}
  if(it.type==='text')return `<p>${it.text}</p>`;
  const m=it.src?(it.type==='video'?`<video src="${it.src}" controls playsinline></video>`:`<img src="${it.src}" alt="">`):(it.type==='video'?'ADD VIDEO':'ADD PHOTO');
  return `<figure class="k ${it.w?'w':''}"><div class="m">${m}</div>${it.cap?`<figcaption>${it.cap}</figcaption>`:''}</figure>`;
 }
-const pg=a=>`<div class="pg">${a.map(media).join('')}</div>`;
+const pg=a=>`<div class="pg${a.length&&a[0].x!==undefined?' free':''}">${a.map(media).join('')}</div>`;
 function lense(){
  const S=SPREADS,n=S.length;
  let h=`<div class="wrap"><div class="book"><div class="half l">${pg(S[0].l)}</div><div class="half r">${pg(S[n-1].r)}</div>`;
@@ -104,31 +104,7 @@ function wireD(root){
  fl.querySelector('.fx').onclick=()=>fl.classList.remove('on');
  sc.addEventListener('wheel',e=>{e.preventDefault();sc.scrollLeft+=e.deltaY+e.deltaX},{passive:false});
 }
-let cart=[];const usd=n=>'$'+n.toLocaleString();
-const LAYM=[[1,3,0],[5,2,9],[8,3,2],[3,3,7],[6,3,0],[10,3,11],[1,2,4],[8,4,8]],LAYW=[[1,6,0],[8,5,12],[3,5,6],[7,6,0],[1,5,10],[8,5,2],[2,6,4],[7,5,9]];
-const shImg=it=>it.src?`<img src="${it.src}" alt="${it.title}">`:`<div class="ph" style="aspect-ratio:4/5">ADD PHOTO</div>`;
-function shop(){return `<div class="sh"><div class="shbar"><span><button data-t="merch" class="on">Merch</button><button data-t="works">Works</button></span><button class="cartb">Cart (0)</button></div><div class="shg"></div><div class="sht"></div></div>`}
-function wireS(root){
- const sh=root.querySelector('.sh'),g=sh.querySelector('.shg'),t=sh.querySelector('.sht'),cb=sh.querySelector('.cartb');let tab='merch';
- const upd=()=>cb.textContent=`Cart (${cart.reduce((a,c)=>a+c.q,0)})`,show=h=>{t.innerHTML=h;t.style.display='flex';t.querySelector('.x').onclick=hide},hide=()=>t.style.display='none',total=()=>cart.reduce((a,c)=>a+c.price*c.q,0);
- function grid(){const L=tab==='merch'?LAYM:LAYW;g.scrollTop=0;
-  g.innerHTML=SHOP[tab].map((it,i)=>{const l=L[i%L.length];return `<figure class="mi" data-i="${i}" style="grid-column:${l[0]}/span ${l[1]};margin-top:${l[2]}vh">${shImg(it)}<figcaption>${it.title} — ${usd(it.price)}</figcaption></figure>`}).join('');
-  g.querySelectorAll('.mi').forEach(f=>f.onclick=()=>item(SHOP[tab][+f.dataset.i]))}
- function item(it){let sz=it.sizes?it.sizes[0]:'';
-  show(`<div class="det"><div class="di">${shImg(it)}</div><div class="dt"><button class="x">CLOSE ×</button><h3>${it.title}</h3><div class="pr">${usd(it.price)}</div><p>${it.desc}</p>${it.sizes?`<div class="sz">${it.sizes.map((s,i)=>`<button data-s="${s}" class="${i?'':'on'}">${s}</button>`).join('')}</div>`:''}<button class="add">ADD TO CART</button></div></div>`);
-  t.querySelectorAll('.sz button').forEach(b=>b.onclick=()=>{sz=b.dataset.s;t.querySelectorAll('.sz button').forEach(x=>x.classList.toggle('on',x===b))});
-  t.querySelector('.add').onclick=()=>{const k=cart.find(c=>c.id===it.id&&c.sz===sz);if(k&&!it.one)k.q++;else if(!k)cart.push({id:it.id,title:it.title,sz,price:it.price,q:1});upd();cartV()}}
- function cartV(){show(`<div class="cartp"><button class="x">CLOSE ×</button><h3>Cart</h3>${cart.length?cart.map((c,i)=>`<div class="ci"><span>${c.title}${c.sz?' · '+c.sz:''} × ${c.q}</span><span>${usd(c.price*c.q)}<button data-r="${i}">remove</button></span></div>`).join('')+`<div class="ci tot"><span>Total</span><span>${usd(total())}</span></div><button class="add co">CHECKOUT</button>`:'<p>Your cart is empty.</p>'}</div>`);
-  t.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{cart.splice(+b.dataset.r,1);upd();cartV()});
-  const co=t.querySelector('.co');if(co)co.onclick=checkout}
- function checkout(){show(`<div class="cartp"><button class="x">CLOSE ×</button><h3>Checkout</h3><input class="nm" placeholder="Name"><input class="em" placeholder="Email"><input class="ad" placeholder="Shipping address"><button class="add pl">PLACE ORDER</button><div class="ord"></div></div>`);
-  t.querySelector('.pl').onclick=()=>{const v=c=>t.querySelector(c).value.trim(),id='ORD-'+Math.random().toString(36).slice(2,8).toUpperCase();
-   const body=`Order ${id}\n`+cart.map(c=>`${c.title}${c.sz?' ('+c.sz+')':''} x${c.q} — ${usd(c.price*c.q)}`).join('\n')+`\nTotal ${usd(total())}\n\n${v('.nm')}\n${v('.em')}\n${v('.ad')}`;
-   t.querySelector('.ord').innerHTML=`<p><b>Order ${id}</b> — ${usd(total())}</p><p>1. Pay by Zelle to <b>${SHOP.zelle}</b> with ${id} in the memo.<br>2. Email your order details so it can be confirmed and shipped.</p><a class="add" href="mailto:${SHOP.email}?subject=${encodeURIComponent('Order '+id)}&body=${encodeURIComponent(body)}">EMAIL ORDER</a>`}}
- sh.querySelectorAll('.shbar [data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sh.querySelectorAll('.shbar [data-t]').forEach(x=>x.classList.toggle('on',x===b));grid()});
- cb.onclick=cartV;grid();upd();
-}
-const PAGES={lense,digital,shop};
+const PAGES={lense,digital,shop:()=>`<div class="soon">Shop — coming soon</div>`};
 
 /* ---- curved gallery (Physical) ---- */
 const ring=$('#ring'),R=1150;let pan=0,panT=0,maxPan=0,minPan=0,drag=null,moved=0,f0v=true;
@@ -161,7 +137,7 @@ const world=$('#world'),pitch=$('#pitch'),f1=$('#f1'),f2=$('#f2'),pageEl=$('#pag
 const YAW0='translateZ(-50vw)',YAW1='translateZ(-50vw) rotateY(-90deg)',P0='translateY(0) rotateX(0deg)',P1='translateY(-100vh) rotateX(90deg)';
 const setNav=n=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===n));
 const setOf=n=>SETS[n]||SETS.lense;
-function mount(n,root){root.innerHTML=PAGES[n]();if(n==='lense')wire(root);if(n==='digital')wireD(root);if(n==='shop')wireS(root)}
+function mount(n,root){root.innerHTML=PAGES[n]();if(n==='lense')wire(root);if(n==='digital')wireD(root);if(n==='shop'&&typeof wireS==='function')wireS(root)}
 function showMouth(src,rot){mi.style.cssText=`display:block;left:${mpos.x}px;top:${mpos.y}px;width:${Math.max(90,mpos.w*1.5)}px;transform:translate(-50%,-50%) rotate(${rot}deg)`;mi.src=src}
 async function turn(toP){
  if(toP){f1.style.visibility='visible';world.style.transform=YAW1;await sleep(1350);f0v=false}
@@ -208,3 +184,6 @@ async function open(n){
 async function home(){if(busy||!cur)return;busy=true;try{await toHome();setNav(null)}finally{busy=false}}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>open(b.dataset.p));
 $('#home').onclick=home;addEventListener('resize',fit);fit();loop();
+
+document.addEventListener('click',e=>{const im=e.target.closest&&e.target.closest('.pg.free img');
+ if(im){const L=document.querySelector('#lb');L.querySelector('img').src=im.dataset.full||im.src;L.querySelector('p').innerHTML='';L.style.display='flex'}});
